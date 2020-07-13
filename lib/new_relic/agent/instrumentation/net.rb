@@ -16,8 +16,8 @@ DependencyDetection.defer do
   end
 
   executes do
-    class Net::HTTP
-      def request_with_newrelic_trace(request, *args, &block)
+    module NewrelicNetHTTPMonkeyPatch
+      def request(request, *args, &block)
         wrapped_request = NewRelic::Agent::HTTPClients::NetHTTPRequest.new(self, request)
 
         segment = NewRelic::Agent::Tracer.start_external_request_segment(
@@ -34,7 +34,7 @@ DependencyDetection.defer do
           # counting if connection wasn't started (which calls request again).
           NewRelic::Agent.disable_all_tracing do
             response = NewRelic::Agent::Tracer.capture_segment_error segment do
-              request_without_newrelic_trace(request, *args, &block)
+              super(request, *args, &block)
             end
           end
 
@@ -46,8 +46,12 @@ DependencyDetection.defer do
         end
       end
 
-      alias request_without_newrelic_trace request
-      alias request request_with_newrelic_trace
+      # alias request_without_newrelic_trace request
+      # alias request request_with_newrelic_trace
+    end
+
+    class Net::HTTP
+      prepend NewrelicNetHTTPMonkeyPatch
     end
   end
 end
