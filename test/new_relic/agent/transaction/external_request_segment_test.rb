@@ -1,6 +1,6 @@
 # encoding: utf-8
 # This file is distributed under New Relic's license terms.
-# See https://github.com/newrelic/rpm/blob/master/LICENSE for complete details.
+# See https://github.com/newrelic/newrelic-ruby-agent/blob/main/LICENSE for complete details.
 
 require File.expand_path(File.join(File.dirname(__FILE__),'..','..','..','test_helper'))
 
@@ -423,7 +423,7 @@ module NewRelic::Agent
         http_response = nil
         with_config config do
           in_transaction :category => :controller do |txn|
-            segment = Tracer.start_external_request_segment(segment_params)
+            segment = Tracer.start_external_request_segment(**segment_params)
             segment.add_request_headers headers
             http_response = mock_http_response headers
             segment.process_response_headers http_response
@@ -824,6 +824,32 @@ module NewRelic::Agent
           assert_equal segment.procedure, external_intrinsics.fetch('http.method')
           assert_equal 'http',            external_intrinsics.fetch('category')
           assert_equal segment.uri.to_s,  external_agent_attributes.fetch('http.url')
+        end
+      end
+
+      def test_urls_are_filtered
+        with_config(distributed_tracing_config) do
+          segment   = nil
+          filtered_url = "https://remotehost.com/bar/baz"                                      
+
+          in_transaction('wat') do |txn|
+            txn.stubs(:sampled?).returns(true)
+
+            segment = ExternalRequestSegment.new "Typhoeus",
+                                                 "#{filtered_url}?a=1&b=2#fragment",
+                                                 "GET"
+            txn.add_segment segment
+            segment.start
+            advance_time 1.0
+            segment.finish
+          end
+
+          last_span_events  = NewRelic::Agent.agent.span_event_aggregator.harvest![1]
+          assert_equal 2, last_span_events.size
+          _, _, external_agent_attributes = last_span_events[0]
+
+          assert_equal filtered_url, segment.uri.to_s
+          assert_equal filtered_url, external_agent_attributes.fetch('http.url')
         end
       end
 

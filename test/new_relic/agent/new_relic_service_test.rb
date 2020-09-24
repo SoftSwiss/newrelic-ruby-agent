@@ -1,6 +1,6 @@
 # encoding: utf-8
 # This file is distributed under New Relic's license terms.
-# See https://github.com/newrelic/rpm/blob/master/LICENSE for complete details.
+# See https://github.com/newrelic/newrelic-ruby-agent/blob/main/LICENSE for complete details.
 
 require 'cgi'
 require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'test_helper'))
@@ -20,6 +20,11 @@ class NewRelicServiceTest < Minitest::Test
     @http_handle.respond_to(:connect, connect_response)
 
     @service.stubs(:create_http_connection).returns(@http_handle)
+  end
+
+  def teardown
+    NewRelic::Agent.config.reset_to_defaults
+    reset_buffers_and_caches
   end
 
   def create_http_handle(name='connection')
@@ -208,6 +213,16 @@ class NewRelicServiceTest < Minitest::Test
     end
   end
 
+  def test_metric_recorded_when_using_bundled_certs
+    assert @service.cert_file_path
+    assert_metrics_recorded("Supportability/Ruby/Certificate/BundleRequired")
+  end
+
+  def test_system_certs_by_default
+    @service.set_cert_store(nil)
+    assert_metrics_not_recorded("Supportability/Ruby/Certificate/BundleRequired")
+  end
+
   def test_initialize_uses_license_key_from_config
     with_config(:license_key => 'abcde') do
       service = NewRelic::Agent::NewRelicService.new
@@ -251,6 +266,20 @@ class NewRelicServiceTest < Minitest::Test
 
     @service.connect
     assert_equal 666, @service.agent_id
+  end
+
+  def test_preconnect_never_uses_redirect_host
+    # Use locally configured collector for initial preconnect
+    initial_preconnect_log = with_array_logger(level=:debug) { @service.preconnect }
+    assert_log_contains initial_preconnect_log, 'Sending request to somewhere.example.com'
+
+    # Connect has set the redirect host as the collector
+    initial_connect_log = with_array_logger(level=:debug) { @service.connect }
+    assert_log_contains initial_connect_log, 'Sending request to localhost'
+
+    # If we need to reconnect, preconnect should use the locally configured collector again
+    reconnect_log = with_array_logger(level=:debug) { @service.preconnect }
+    assert_log_contains reconnect_log, 'Sending request to somewhere.example.com'
   end
 
   def test_preconnect_with_no_token_and_no_lasp

@@ -1,6 +1,6 @@
 # encoding: utf-8
 # This file is distributed under New Relic's license terms.
-# See https://github.com/newrelic/rpm/blob/master/LICENSE for complete details.
+# See https://github.com/newrelic/newrelic-ruby-agent/blob/main/LICENSE for complete details.
 
 # Test the logic for loading the newrelic.yml config file.
 #
@@ -197,12 +197,6 @@ boom:
     # load that section of newrelic.yml
     setup_config(path, {:env => 'bazbangbarn'} )
     assert_equal 'bazbangbarn', NewRelic::Agent.config[:i_am], "Agent.config did not load bazbangbarn config as requested"
-  end
-
-  def assert_log_contains(log, message)
-    lines = log.array
-    failure_message = "Did not find '#{message}' in log. Log contained:\n#{lines.join('')}"
-    assert (lines.any? { |line| line.match(message) }), failure_message
   end
 
   def refute_log_contains(log, message)

@@ -1,6 +1,6 @@
 # encoding: utf-8
 # This file is distributed under New Relic's license terms.
-# See https://github.com/newrelic/rpm/blob/master/LICENSE for complete details.
+# See https://github.com/newrelic/newrelic-ruby-agent/blob/main/LICENSE for complete details.
 # frozen_string_literal: true
 
 require 'new_relic/agent/transaction/segment'
@@ -28,7 +28,7 @@ module NewRelic
 
         def initialize library, uri, procedure, start_time = nil # :nodoc:
           @library = library
-          @uri = HTTPClients::URIUtil.parse_and_normalize_url(uri)
+          @uri = HTTPClients::URIUtil.obfuscated_uri(uri)
           @procedure = procedure
           @host_header = nil
           @app_data = nil
@@ -204,7 +204,7 @@ module NewRelic
         end
 
         def segment_complete
-          params[:uri] = HTTPClients::URIUtil.filter_uri(uri)
+          params[:uri] = uri.to_s
           if cross_app_request?
             params[:transaction_guid] = transaction_guid
           end

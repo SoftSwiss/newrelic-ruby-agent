@@ -1,6 +1,6 @@
 # encoding: utf-8
 # This file is distributed under New Relic's license terms.
-# See https://github.com/newrelic/rpm/blob/master/LICENSE for complete details.
+# See https://github.com/newrelic/newrelic-ruby-agent/blob/main/LICENSE for complete details.
 
 require File.expand_path(File.join(File.dirname(__FILE__),'..','..','test_helper'))
 
@@ -1647,14 +1647,14 @@ module NewRelic::Agent
     def test_generates_guid_when_running_out_of_file_descriptors
       # SecureRandom.hex raises an exception when the ruby interpreter
       # uses up all of its allotted file descriptors.
-      # See also: https://github.com/newrelic/rpm/issues/303
+      # See also: https://github.com/newrelic/newrelic-ruby-agent/issues/303
       file_descriptors = []
       begin
         # Errno::EMFILE is raised when the system runs out of file
         # descriptors
         # If the segment constructor fails to create a random guid, the
         # exception would be a RuntimeError
-        assert_raises Errno::EMFILE do
+        assert_raises Errno::EMFILE, Errno::ENFILE do
           while true do
             file_descriptors << IO.sysopen(__FILE__)
             in_transaction do |txn|

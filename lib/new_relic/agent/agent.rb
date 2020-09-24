@@ -1,6 +1,6 @@
 # encoding: utf-8
 # This file is distributed under New Relic's license terms.
-# See https://github.com/newrelic/rpm/blob/master/LICENSE for complete details.
+# See https://github.com/newrelic/newrelic-ruby-agent/blob/main/LICENSE for complete details.
 
 require 'socket'
 require 'net/https'
@@ -244,6 +244,13 @@ module NewRelic
           Agent.config.remove_config_type(:server)
         end
 
+        # If the @worker_thread encounters an error during the attempt to connect to the collector
+        # then the connect attempts enter an exponential backoff retry loop.  To avoid potential
+        # race conditions with shutting down while also attempting to reconnect, we join the
+        # @worker_thread with a timeout threshold.  This allows potentially connecting and flushing
+        # pending data to the server, but without waiting indefinitely for a reconnect to succeed.
+        # The use-case where this typically arises is in cronjob scheduled rake tasks where there's
+        # also some network stability/latency issues happening.
         def stop_event_loop
           @event_loop.stop if @event_loop
           # Wait the end of the event loop thread.
@@ -946,6 +953,10 @@ module NewRelic
         rescue NewRelic::Agent::UnrecoverableAgentException => e
           handle_unrecoverable_agent_error(e)
         rescue StandardError, Timeout::Error, NewRelic::Agent::ServerConnectionException => e
+          # Allow a killed (aborting) thread to continue exiting during shutdown.
+          # See: https://github.com/newrelic/newrelic-ruby-agent/issues/340
+          raise if Thread.current.status == 'aborting'
+
           log_error(e)
           if opts[:keep_retrying]
             note_connect_failure

@@ -1,7 +1,7 @@
 # -*- ruby -*-
 # encoding: utf-8
 # This file is distributed under New Relic's license terms.
-# See https://github.com/newrelic/rpm/blob/master/LICENSE for complete details.
+# See https://github.com/newrelic/newrelic-ruby-agent/blob/main/LICENSE for complete details.
 # frozen_string_literal: true
 
 # This module includes utilities for manipulating URIs, particularly from the
@@ -15,13 +15,13 @@ module NewRelic
     module HTTPClients
       module URIUtil
 
-        def self.filter_uri(original)
-          filtered = original.dup
-          filtered.user = nil
-          filtered.password = nil
-          filtered.query = nil
-          filtered.fragment = nil
-          filtered.to_s
+        def self.obfuscated_uri(url)
+          parse_and_normalize_url(url).tap do |obfuscated|
+            obfuscated.user = nil
+            obfuscated.password = nil
+            obfuscated.query = nil
+            obfuscated.fragment = nil
+          end
         end
 
         # There are valid URI strings that some HTTP client libraries will

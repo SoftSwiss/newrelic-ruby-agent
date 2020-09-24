@@ -2,7 +2,7 @@ source 'https://rubygems.org'
 
 gem 'rails', '~>3.0.20'
 
-gem 'rake', '~>10.1.1'
+gem 'rake', '~> 12.3.3'
 gem 'minitest', '~>4.7.5'
 gem 'mocha', '~> 1.9.0', :require => false
 gem 'rack', '< 2.0.0'
@@ -10,12 +10,14 @@ gem 'rack-test'
 
 gem 'newrelic_rpm', :path => '../../..'
 
-if (RUBY_PLATFORM == 'java')
+platforms :jruby do
   gem "activerecord-jdbcmysql-adapter"
   gem "activerecord-jdbcsqlite3-adapter"
   gem "jruby-openssl"
-else
-  gem "mysql", "~>2.9.1"
+end
+
+platforms :ruby, :rbx do
+  gem "mysql2", '~> 0.2.0'
   gem "sqlite3-ruby"
 end
 

@@ -1,6 +1,6 @@
 # encoding: utf-8
 # This file is distributed under New Relic's license terms.
-# See https://github.com/newrelic/rpm/blob/master/LICENSE for complete details.
+# See https://github.com/newrelic/newrelic-ruby-agent/blob/main/LICENSE for complete details.
 
 require 'newrelic_rpm'
 require 'fake_instance_metadata_service'
@@ -68,8 +68,12 @@ class UtilizationDataCollectionTest < Minitest::Test
     NewRelic::Agent::Utilization::GCP.any_instance.stubs(:detect).returns(false)
 
     # this will trigger the agent to connect and send utilization data
-    setup_agent
-
+    setup_agent({
+      'utilization.detect_aws' => false,
+      'utilization.detect_gcp' => false,
+      'utilization.detect_azure' => false,
+      'utilization.detect_pcf' => false
+    })
     assert_equal expected, single_connect_posted.utilization
   end
 
